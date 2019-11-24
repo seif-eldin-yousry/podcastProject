@@ -18,15 +18,33 @@ class PlayerDetailsView: UIView {
             titleLabel.text = episode.title
             authorLabel.text = episode.author
             
+            setupNowPlayingInfo()
+            
             playEpisode()
             
             guard let url = URL(string: episode.imageUrl ?? "" ) else { return  }
             episodeImageView.sd_setImage(with: url)
             miniEpisodeImageView.sd_setImage(with: url)
+            
+            miniEpisodeImageView.sd_setImage(with: url) { (image, _, _, _) in
+                
+                //Lock screen Artwork
+                    let image = self.episodeImageView.image ?? UIImage()
+                    let artworkItem = MPMediaItemArtwork(boundsSize: .zero, requestHandler: { (size) -> UIImage in
+                        return image
+                    })
+                MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyArtwork] = artworkItem
+            }
         }
     }
-    
-    
+                
+    fileprivate func setupNowPlayingInfo() {
+        var nowPlayingInfo = [String: Any]()
+        nowPlayingInfo[MPMediaItemPropertyTitle] = episode.title
+        nowPlayingInfo[MPMediaItemPropertyArtist] = episode.author
+        
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    }
     
     fileprivate func playEpisode() {
         guard let url = URL(string: episode.streamUrl) else { return }
@@ -52,6 +70,8 @@ class PlayerDetailsView: UIView {
             self?.updateCurrentTimeSlider()
         }
     }
+    
+    
     
     fileprivate func updateCurrentTimeSlider() {
         let currentTimeSecond = CMTimeGetSeconds(player.currentTime())
@@ -104,6 +124,9 @@ class PlayerDetailsView: UIView {
             self.player.play()
             self.playPause.setImage(UIImage(named: "pause"), for: .normal)
             self.miniPlayPauseButton.setImage(UIImage(named: "pause"), for: .normal)
+            
+            self.setupElapsedTime()
+            
             return .success
         }
         commandCenter.pauseCommand.isEnabled = true
@@ -111,29 +134,90 @@ class PlayerDetailsView: UIView {
             self.player.pause()
             self.playPause.setImage(UIImage(named: "play"), for: .normal)
             self.miniPlayPauseButton.setImage(UIImage(named: "play"), for: .normal)
+            self.setupElapsedTime()
             return .success
         }
+        commandCenter.togglePlayPauseCommand.isEnabled = true
+        commandCenter.togglePlayPauseCommand.addTarget { (_) -> MPRemoteCommandHandlerStatus in
+            self.handlePlayPause()
+            return.success
+        }
+        commandCenter.nextTrackCommand.addTarget(self, action: #selector(handleNextTrack))
+        commandCenter.previousTrackCommand.addTarget(self, action: #selector(handlePreviousTrack))
     }
     
-    override func awakeFromNib() {
-        super.awakeFromNib()
+    var playlistEpisodes = [Episode]()
+    
+    @objc fileprivate func handlePreviousTrack() {
+        if playlistEpisodes.count == 0 { return }
+        let currentEpisodeIndex = playlistEpisodes.firstIndex { (ep) -> Bool in
+            return self.episode.title == ep.title
+        }
+        guard let index = currentEpisodeIndex else { return }
+        let prevEpisode: Episode
+        if index == 0 {
+            let count = playlistEpisodes.count
+            prevEpisode = playlistEpisodes[count - 1]
+        } else {
+            prevEpisode = playlistEpisodes[index - 1]
+        }
+        self.episode = prevEpisode
+    }
+    
+    @objc fileprivate func handleNextTrack() {
+//        playlistEpisodes.forEach({print($0.title)})
         
-        setupRemoteControl()
+        if playlistEpisodes.count == 0 { return }
         
-        setupAudioSession()
+        let currentEpisodeIndex = playlistEpisodes.firstIndex { (ep) -> Bool in
+            return self.episode.title == ep.title
+        }
+        guard let index = currentEpisodeIndex else { return }
         
-        setupGestures()
+        let nextEpisode: Episode
+        if index == playlistEpisodes.count - 1 {
+            nextEpisode = playlistEpisodes[0]
+        } else {
+            nextEpisode = playlistEpisodes[index + 1]
+        }
         
-        observePlayerCurrentTime()
-        
+        self.episode = nextEpisode
+    }
+    
+    fileprivate func setupElapsedTime() {
+        let elapsedTime = CMTimeGetSeconds(player.currentTime())
+        MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsedTime
+    }
+    
+    fileprivate func observeBoundaryTime() {
         let time = CMTimeMake(value: 1, timescale: 3)
         let times = [NSValue(time: time)]
         
         //player has a reference to self
         //self has a reference to player
         player.addBoundaryTimeObserver(forTimes: times, queue: .main) { [weak self] in
+            print("Episode started playing")
             self?.enlargeEpisodeImageView()
+            self?.setupLockscreenDuration()
         }
+    }
+    
+    fileprivate func setupLockscreenDuration(){
+        guard let duration = player.currentItem?.duration else { return }
+        let durationSeconds = CMTimeGetSeconds(duration)
+        MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyPlaybackDuration] = durationSeconds
+    }
+    
+    override func awakeFromNib() {
+        super.awakeFromNib()
+        
+        setupRemoteControl()
+        setupAudioSession()
+        setupGestures()
+        
+        observePlayerCurrentTime()
+        
+        observeBoundaryTime()
     }
     
     
@@ -167,6 +251,9 @@ class PlayerDetailsView: UIView {
         let durationInSeconds = CMTimeGetSeconds(duration)
         let seekTimeInSeconds = Float64(percentage) * durationInSeconds
         let seekTime = CMTimeMakeWithSeconds(seekTimeInSeconds, preferredTimescale: 1)
+        
+        MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPNowPlayingInfoPropertyElapsedPlaybackTime] = seekTimeInSeconds
+        
         player.seek(to: seekTime)
         
     }
@@ -193,7 +280,7 @@ class PlayerDetailsView: UIView {
     @IBOutlet weak var durationLabel: UILabel!
     
     @IBAction func handleDismiss(_ sender: UIButton) {
-        UIApplication.mainTabBarController()?.maximizePlayerDetails(episode: nil)
+        UIApplication.mainTabBarController()?.minimizePlayerDetails()
 //        panGesture.isEnabled = true
 //        self.removeFromSuperview()
     }
@@ -246,7 +333,5 @@ class PlayerDetailsView: UIView {
             titleLabel.numberOfLines = 2
         }
     }
-    
-    
+                
 }
-
