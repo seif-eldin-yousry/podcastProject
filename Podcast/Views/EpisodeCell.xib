@@ -49,11 +49,20 @@
                             </label>
                         </subviews>
                     </stackView>
+                    <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="100%" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="myE-6c-JT3">
+                        <rect key="frame" x="28" y="83" width="76.5" height="33.5"/>
+                        <fontDescription key="fontDescription" type="boldSystem" pointSize="28"/>
+                        <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <nil key="highlightedColor"/>
+                        <size key="shadowOffset" width="0.0" height="1"/>
+                    </label>
                 </subviews>
                 <constraints>
+                    <constraint firstItem="myE-6c-JT3" firstAttribute="centerX" secondItem="A3G-W0-wVs" secondAttribute="centerX" id="3QS-ip-SyK"/>
                     <constraint firstItem="53L-1D-o2m" firstAttribute="leading" secondItem="A3G-W0-wVs" secondAttribute="trailing" constant="16" id="OYP-Rh-ODh"/>
                     <constraint firstAttribute="trailingMargin" secondItem="53L-1D-o2m" secondAttribute="trailing" id="Sq9-qf-jJT"/>
                     <constraint firstItem="53L-1D-o2m" firstAttribute="centerY" secondItem="H2p-sc-9uM" secondAttribute="centerY" id="ioG-Qt-mGZ"/>
+                    <constraint firstItem="myE-6c-JT3" firstAttribute="centerY" secondItem="A3G-W0-wVs" secondAttribute="centerY" id="rcI-vg-c9r"/>
                     <constraint firstItem="A3G-W0-wVs" firstAttribute="leading" secondItem="H2p-sc-9uM" secondAttribute="leading" constant="16" id="urT-bL-rfF"/>
                     <constraint firstItem="A3G-W0-wVs" firstAttribute="centerY" secondItem="H2p-sc-9uM" secondAttribute="centerY" id="yJ9-F2-bcX"/>
                 </constraints>
@@ -62,6 +71,7 @@
             <connections>
                 <outlet property="descriptionLabel" destination="Fcc-ub-GxP" id="6KZ-K9-PCZ"/>
                 <outlet property="episodeImageView" destination="A3G-W0-wVs" id="LWl-up-F58"/>
+                <outlet property="progressLabel" destination="myE-6c-JT3" id="HtP-Pg-70Q"/>
                 <outlet property="pubDateLabel" destination="lkL-M1-RLc" id="n7e-Ea-XXS"/>
                 <outlet property="titleLabel" destination="L8J-Bh-BVu" id="ACx-7A-vHU"/>
             </connections>

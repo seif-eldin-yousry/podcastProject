@@ -10,10 +10,53 @@ import Foundation
 import Alamofire
 import FeedKit
 
+extension Notification.Name {
+    static let downloadProgress = Notification.Name("downloadProgress")
+    static let downloadComplete = Notification.Name("downloadComplete")
+}
+
+
 class APIService {
+    
+//    typealias EpisodeDownloadCompleteTuple = (fileUrl: String, episode.title: String)
     
     //Singleton
     static let shared = APIService()
+    
+    func downloadEpisode(episode: Episode) {
+        
+        let downloadRequest = DownloadRequest.suggestedDownloadDestination()
+        Alamofire.download(episode.streamUrl, to: downloadRequest).downloadProgress { (progress) in
+            
+//            print(progress.fractionCompleted)
+            
+            //Notify Downloads controller with download progess
+            
+            NotificationCenter.default.post(name: .downloadProgress, object: nil, userInfo: ["title": episode.title, "progress": progress.fractionCompleted])
+            
+            
+            }.response { (resp) in
+                print(resp.destinationURL?.absoluteString ?? "")
+                
+//                NotificationCenter.default.post(name: .downloadComplete, object: <#T##Any?#>, userInfo: nil)
+                
+                //update User Defaults downloaded episodes with the temp file
+                
+                var downloadedEpisodes = UserDefaults.standard.downloadedEpisodes()
+                guard let index = downloadedEpisodes.firstIndex(where: { $0.title == episode.title && $0.author == episode.author  }) else { return }
+                downloadedEpisodes[index].fileUrl = resp.destinationURL?.absoluteString ?? ""
+                
+                do {
+                    let data = try JSONEncoder().encode(downloadedEpisodes)
+                    UserDefaults.standard.set(data, forKey: UserDefaults.downloadedEpisodesKey)
+                } catch let err {
+                    print("failed to encode downloaded episodes with file ", err)
+                }
+                
+        }
+        
+    }
+    
     
     func fetchEpisodes (feedUrl: String, completionHandler: @escaping ([Episode]) -> ()) {
         
